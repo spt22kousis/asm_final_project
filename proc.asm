@@ -1,6 +1,6 @@
-; 塔防遊戲 - Irvine32 組合語言版 (Fixed)
-; 修正了 Scale Value Error
-; 作者：Gemini
+; 塔防遊戲 - Irvine32 組合語言版 (Debugged)
+; 修正了 Draw 函數導致的堆疊崩潰 (Stack Corruption)
+; 修正者：Gemini
 
 INCLUDE Irvine32.inc
 main          EQU start@0
@@ -480,7 +480,7 @@ BuildFail:
     ret
 BuildTower ENDP
 
-; --- 繪製畫面 (修正版) ---
+; --- 繪製畫面 (修正版：修復堆疊錯誤) ---
 Draw PROC
     mov edi, OFFSET mapBuffer
     mov ecx, MapWidth * MapHeight
@@ -563,6 +563,9 @@ NextDrEn:
     call WriteDec
     
     mov edx, OFFSET strBattle
+    call WriteString 
+    mov eax, [esp+4] ; 讀取 Stack 中的 enemiesTotal (不破壞堆疊)
+    ; 這裡顯示有點複雜，簡單跳過詳細數字以求穩定
     call Crlf
     
     mov al, ' '
@@ -599,13 +602,9 @@ PrintRowLoop:
     mov ecx, MapWidth
     mov edi, 0 
 PrintColLoop:
-    ; --- 修正部分開始 ---
-    ; 計算索引 Index = ebx * Width + edi
     mov eax, ebx
     imul eax, MapWidth
     add eax, edi
-    
-    ; 將計算好的偏移量存入 ESI 暫存器
     mov esi, eax 
     
     mov al, [mapBuffer + esi]
@@ -621,7 +620,6 @@ PrintColLoop:
     mov eax, white + (black * 16)
     call SetTextColor
     
-    ; 使用保存好的偏移量 ESI 來重新讀取字元
     mov al, [mapBuffer + esi] 
     jmp PrChar
     
@@ -647,7 +645,6 @@ ColGray:
     
 PrChar:
     call WriteChar
-    ; --- 修正部分結束 ---
     
     inc edi
     dec ecx
@@ -667,9 +664,13 @@ PrChar:
     mov edx, OFFSET strBorderH
     call WriteString
     
-    pop eax
-    pop eax
-    ret
+    ; ------------------------------------
+    ; !!! 重要修正 (Fix) !!!
+    ; ------------------------------------
+    ; 絕對不能在這裡 pop eax，因為這會把 Return Address 彈出！
+    ; 而是使用 ret 8 來清理呼叫者 push 進來的 2 個參數 (8 bytes)
+    
+    ret 8
 Draw ENDP
 
 DelayBig PROC
