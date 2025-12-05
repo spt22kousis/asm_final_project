@@ -62,7 +62,8 @@ TowerOff_KillCount EQU 12
     strHealth   BYTE "  |  Base HP: ", 0
     strPrep     BYTE 0dh, 0ah, "State: [PREP] (b)Build ($50) | (s)Start | (q)Quit", 0dh, 0ah, "Cmd: ", 0
     strBattle   BYTE 0dh, 0ah, "State: [BATTLE] Enemies Left: ", 0
-    strInputPos BYTE "Enter X Y (e.g., 5 5): ", 0
+    strInputX   BYTE "Enter X: ", 0
+    strInputY   BYTE "Enter Y: ", 0
     strMsgBuild BYTE ">> Tower Built!", 0dh, 0ah, 0
     strMsgErr   BYTE ">> Invalid Pos or No Money!", 0dh, 0ah, 0
     strLose     BYTE 0dh, 0ah, "=== GAME OVER ===", 0dh, 0ah, 0
@@ -206,10 +207,16 @@ PrepLoop:
 
 BuildMode:
     call Crlf
-    mov edx, OFFSET strInputPos
+    
+    ; 輸入 X
+    mov edx, OFFSET strInputX
     call WriteString
     call ReadInt
     mov ebx, eax 
+    
+    ; 輸入 Y (分開詢問以避免 ReadInt 吃掉換行符導致 Y=0)
+    mov edx, OFFSET strInputY
+    call WriteString
     call ReadInt
     mov ecx, eax 
     
