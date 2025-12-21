@@ -7,6 +7,7 @@ MapHeight EQU 10 ; 地圖高度
 MaxEnemies EQU 50 ; 敵人數量上限
 MaxTowers EQU 30 ; 塔數量上限
 TowerCost EQU 50 ; 塔價錢
+TowerRefund EQU 25 ; [新增] 賣塔退款
 TowerDamage EQU 2 ; 塔傷害
 StartBaseHP EQU 3 ; 初始基地血量
 StartMoney EQU 120 ; 初始金錢
@@ -87,14 +88,16 @@ WaveToClear EQU 3
     strTitle2   BYTE ") ===", 0dh, 0ah, 0
     strMoney    BYTE "Money: $", 0
     strHealth   BYTE "  |  Base HP: ", 0
-    strPrep     BYTE 0dh, 0ah, "State: [PREP] (b)Build ($50) | (s)Start | (q)Quit ", 0dh, 0ah, "Enter command here: ", 0
+    strPrep     BYTE 0dh, 0ah, "State: [PREP] (b)Build($50) | (x)Sell(+$25) | (s)Start | (q)Quit ", 0dh, 0ah, "Enter command here: ", 0
     strBattle   BYTE 0dh, 0ah, "State: [BATTLE] Enemies Left: ", 0
     strInputX   BYTE "Enter X: ", 0
     strInputY   BYTE "Enter Y: ", 0
     strMsgBuild BYTE ">> Tower Built!", 0dh, 0ah, 0
+    strMsgSell  BYTE ">> Tower Sold! (+$25)", 0dh, 0ah, 0 ; [新增]
     strMsgErr01 BYTE ">> Not Enough Money!", 0dh, 0ah, 0 ; 報錯訊息01
     strMsgErr02 BYTE ">> Can Not Set Tower Here, Try Again!", 0dh, 0ah, 0 ; 報錯訊息02
     strMsgErr03 BYTE ">> Build Too Many Towers!", 0dh, 0ah, 0 ; 報錯訊息03
+    strMsgErrSell BYTE ">> No Tower Found Here!", 0dh, 0ah, 0 ; [新增]
     strLose     BYTE 0dh, 0ah, "=== YOU LOSE !!!===", 0dh, 0ah, "(r)Replay | (q)QuitGame", 0
     strWin      BYTE 0dh, 0ah, "=== StageBeta Cleared !!!===", 0dh, 0ah, "(r)Replay | (q)QuitGame", 0
     strWinWave  BYTE 0dh, 0ah, ">> Wave Cleared! <<", 0dh, 0ah, 0
@@ -535,6 +538,8 @@ PrepLoop:
     je EndPrep
     cmp al, 'b' ;按b進入建築模式
     je BuildMode
+    cmp al, 'x' ;按x進入販賣模式
+    je SellMode
     cmp al, 'q'
     je PlayerQuit
     cmp al, 'Q'
@@ -581,6 +586,42 @@ CheckUpperX:
     call BuildTower
     call DelayBig
     jmp PrepLoop
+
+SellMode: ; 販賣模式
+    call Crlf
+    
+    ; 輸入 X
+    mov edx, OFFSET strInputX
+    call WriteString
+    call ReadChar
+    call Crlf
+
+    ; 轉換小寫為大寫
+    cmp al, 'a'
+    jb CheckUpperX_Sell
+    cmp al, 'z'
+    ja CheckUpperX_Sell
+    sub al, ('a' - 'A')
+
+CheckUpperX_Sell:
+    cmp al, 'A'
+    jb PrepLoop
+    cmp al, 'T'
+    ja PrepLoop
+
+    sub al, 'A'
+    movzx ebx, al
+    
+    ; 輸入 Y 
+    mov edx, OFFSET strInputY
+    call WriteString
+    call ReadInt
+    mov ecx, eax 
+    
+    call SellTower
+    call DelayBig
+    jmp PrepLoop
+
 BuildFailNotEnoughMoney:
     mov edx, OFFSET strMsgErr01
     call WriteString
@@ -1004,6 +1045,39 @@ BuildFailTooManyTower:
     call WriteString
     ret
 BuildTower ENDP
+
+; --- 販賣塔 ---
+SellTower PROC
+    mov esi, OFFSET towers
+    mov edx, MaxTowers
+FindTowerToSell:
+    cmp DWORD PTR [esi + TowerOff_Active], 1
+    jne NextTwSell
+    cmp [esi + TowerOff_X], ebx
+    jne NextTwSell
+    cmp [esi + TowerOff_Y], ecx
+    jne NextTwSell
+    
+    ; 找到塔，執行販賣
+    mov DWORD PTR [esi + TowerOff_Active], 0
+    mov DWORD PTR [esi + TowerOff_IsAttacking], 0
+    add money, TowerRefund
+    dec towersBuilt
+    
+    mov edx, OFFSET strMsgSell
+    call WriteString
+    ret
+
+NextTwSell:
+    add esi, TowerSize
+    dec edx
+    jnz FindTowerToSell
+    
+    ; 找不到塔
+    mov edx, OFFSET strMsgErrSell
+    call WriteString
+    ret
+SellTower ENDP
 
 ; --- 繪製畫面 (修改加入變色判定) ---
 Draw PROC
