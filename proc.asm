@@ -110,6 +110,11 @@ WaveToClear EQU 3
     strSideTower   BYTE "Tower: [T] ($50)", 0
     strSideHP      BYTE "Base HP: ", 0
     strHeart       BYTE "❤", 0
+    
+    ; --- 戰鬥紀錄 ---
+    strAttackLog    BYTE 2048 DUP(0)
+    attackLogIdx    DWORD 0
+    strAttackFragment BYTE " attack enemy ", 0
 
 ; --- 遊戲結束資訊 ---
     strGameOverInfo1 BYTE "Waves Cleared: ", 0
@@ -591,6 +596,10 @@ RunPrepPhase ENDP
 
 ; --- [新增] 重置視覺狀態 ---
 ResetVisualFlags PROC
+    ; 重置戰鬥紀錄
+    mov attackLogIdx, 0
+    mov BYTE PTR [strAttackLog], 0
+
     ; 重置敵人受傷狀態
     mov esi, OFFSET enemies
     mov ecx, MaxEnemies
@@ -764,6 +773,126 @@ EnemyCheckLoop:
     mov DWORD PTR [esi + TowerOff_IsAttacking], 1
     mov DWORD PTR [edi + EnemyOff_IsHit], 1
 
+    ; --- 紀錄攻擊資訊 ---
+    ; 保存暫存器
+    push eax
+    push ebx
+    push ecx
+    push edx
+    push esi
+    push edi
+
+    ; 取得目前的寫入指標
+    mov edi, OFFSET strAttackLog
+    add edi, attackLogIdx
+    
+    ; 寫入 "Tower " (手動寫入)
+    mov al, 't'
+    mov [edi], al
+    inc edi
+    mov al, 'o'
+    mov [edi], al
+    inc edi
+    mov al, 'w'
+    mov [edi], al
+    inc edi
+    mov al, 'e'
+    mov [edi], al
+    inc edi
+    mov al, 'r'
+    mov [edi], al
+    inc edi
+    mov al, ' '
+    mov [edi], al
+    inc edi
+
+    ; 寫入 Tower Y (數值轉ASCII, 0-9)
+    mov eax, [esi + TowerOff_Y]
+    add al, '0'
+    mov [edi], al
+    inc edi
+
+    ; 寫入 ","
+    mov al, ','
+    mov [edi], al
+    inc edi
+
+    ; 寫入 Tower X (數值轉 'A'+X)
+    mov eax, [esi + TowerOff_X]
+    add al, 'A'
+    mov [edi], al
+    inc edi
+
+    ; 寫入 " attack enemy "
+    push esi ; 保存 Tower 指標
+    mov esi, OFFSET strAttackFragment
+CopyFrag:
+    mov al, [esi]
+    cmp al, 0
+    je CopyFragDone
+    mov [edi], al
+    inc edi
+    inc esi
+    jmp CopyFrag
+CopyFragDone:
+    pop esi ; 還原 Tower 指標
+    
+    ; 取得 Enemy 座標 (需要重新計算)
+    ; 這裡的 stack 中 [esp] 是 saved edi (Enemy Pointer)
+    mov edx, [esp] 
+    
+    mov eax, [edx + EnemyOff_PathIdx]
+    mov ebx, 8
+    imul ebx ; eax = index * 8
+    
+    push esi ; 借用 esi 讀取 pathArray
+    mov esi, OFFSET pathArray
+    add esi, eax
+    mov ecx, [esi]   ; Enemy X
+    mov ebx, [esi+4] ; Enemy Y
+    pop esi
+    
+    ; 寫入 Enemy Y
+    mov al, bl
+    add al, '0'
+    mov [edi], al
+    inc edi
+    
+    ; 寫入 ","
+    mov al, ','
+    mov [edi], al
+    inc edi
+    
+    ; 寫入 Enemy X
+    mov al, cl
+    add al, 'A'
+    mov [edi], al
+    inc edi
+    
+    ; 換行
+    mov al, 0Dh
+    mov [edi], al
+    inc edi
+    mov al, 0Ah
+    mov [edi], al
+    inc edi
+
+    ; Null terminate
+    mov BYTE PTR [edi], 0
+
+    ; 更新 attackLogIdx
+    sub edi, OFFSET strAttackLog
+    mov attackLogIdx, edi
+
+    ; 還原暫存器
+    pop edi
+    pop esi
+    pop edx
+    pop ecx
+    pop ebx
+    pop eax
+    ; --- 紀錄結束 ---
+
     ; 扣血
     mov eax, [edi + EnemyOff_HP]
     sub eax, TowerDamage
@@ -781,7 +910,8 @@ EnemyCheckLoop:
 
 NextEnemyCheck:
     add edi, EnemySize
-    loop EnemyCheckLoop
+    dec ecx
+    jnz EnemyCheckLoop
 
 AttackDone:
 NextTower:
@@ -1081,6 +1211,10 @@ PrChar:
     jl PrintRowLoop
     
     mov edx, OFFSET strBorderH
+    call WriteString
+
+    ; 顯示戰鬥紀錄
+    mov edx, OFFSET strAttackLog
     call WriteString
 
     call Crlf
