@@ -156,7 +156,7 @@ WaveToClear EQU 3
 main PROC
 GameStart:
 	mov edx, OFFSET strSetWindow
-	; call Win32_System_Command
+	call Win32_System_Command
 	call ShowStartScreen ; 先顯示起始畫面，玩家按 P 才會繼續
     call InitGame ; 初始化遊戲
 	
@@ -184,7 +184,7 @@ NextWave:
     inc wave
     jmp GameLoop
 
-LoseOld: ; 關卡挑戰失敗，顯示失敗文字，給玩家選擇重玩或關掉遊戲
+LoseOld: 
     call Clrscr
     mov edx, OFFSET strLose
     call WriteString
@@ -197,7 +197,7 @@ LoseOld: ; 關卡挑戰失敗，顯示失敗文字，給玩家選擇重玩或關
 
     jmp Lose
 
-WinOld: ; 關卡挑戰成功，顯示通關文字，給玩家選擇重玩或關掉遊戲
+WinOld: 
     call Clrscr
     mov edx, OFFSET strWin
     call WriteString
@@ -210,7 +210,7 @@ WinOld: ; 關卡挑戰成功，顯示通關文字，給玩家選擇重玩或關�
 
     jmp Win
 	
-Lose: 
+Lose: ; 關卡挑戰失敗，顯示失敗文字，給玩家選擇重玩或關掉遊戲
     call Clrscr
     mov eax, lightRed + (black * 16)
     call SetTextColor
@@ -264,7 +264,7 @@ L_WaitLose:
     je EndGame
     jmp L_WaitLose
 
-Win: 
+Win: ; 關卡挑戰成功，顯示通關文字，給玩家選擇重玩或關掉遊戲
     call Clrscr
     mov eax, lightCyan + (black * 16)
     call SetTextColor
