@@ -1,7 +1,7 @@
-# *.dll
-# *.inc
-# *.lib
-# *.exe
+*.dll
+*.inc
+*.lib
+*.exe
 *.pdb
 *.obj
 .vscode/
