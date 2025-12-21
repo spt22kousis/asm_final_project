@@ -12,17 +12,24 @@ StartBaseHP EQU 3 ; 初始基地血量
 StartMoney EQU 120 ; 初始金錢
 GameTickMs EQU 250
 TowerRange EQU 35 ; 塔射程
-EnemySize EQU 20 ; 敵人資訊: id(4), pathIndex(4), hp(4), maxHp(4), active(4)
+
+; --- 敵人結構定義 (修改: Size變大) ---
+EnemySize EQU 24 ; id(4), pathIndex(4), hp(4), maxHp(4), active(4), isHit(4)
 EnemyOff_ID EQU 0
 EnemyOff_PathIdx EQU 4
 EnemyOff_HP EQU 8
 EnemyOff_MaxHP EQU 12
 EnemyOff_Active EQU 16
-TowerSize EQU 16 ; 塔資訊: x(4), y(4), active(4), killCount(4)
+EnemyOff_IsHit EQU 20 ; [新增] 受傷閃爍旗標
+
+; --- 塔結構定義 (修改: Size變大) ---
+TowerSize EQU 20 ; x(4), y(4), active(4), killCount(4), isAttacking(4)
 TowerOff_X EQU 0
 TowerOff_Y EQU 4
 TowerOff_Active EQU 8
 TowerOff_KillCount EQU 12
+TowerOff_IsAttacking EQU 16 ; [新增] 攻擊閃爍旗標
+
 WaveToClear EQU 3
 
 .data
@@ -256,6 +263,26 @@ StartBattle:
     ret
 RunPrepPhase ENDP
 
+; --- [新增] 重置視覺狀態 ---
+ResetVisualFlags PROC
+    ; 重置敵人受傷狀態
+    mov esi, OFFSET enemies
+    mov ecx, MaxEnemies
+ResetEnLoop:
+    mov DWORD PTR [esi + EnemyOff_IsHit], 0
+    add esi, EnemySize
+    loop ResetEnLoop
+
+    ; 重置塔攻擊狀態
+    mov esi, OFFSET towers
+    mov ecx, MaxTowers
+ResetTwLoop:
+    mov DWORD PTR [esi + TowerOff_IsAttacking], 0
+    add esi, TowerSize
+    loop ResetTwLoop
+    ret
+ResetVisualFlags ENDP
+
 ; --- 戰鬥階段 ---
 RunBattlePhase PROC
     mov tick, 0
@@ -270,6 +297,9 @@ RunBattlePhase PROC
 BattleLoop:
     cmp health, 0
     jle EndBattle
+
+    ; [新增] 在邏輯運算前，先重置視覺閃爍狀態
+    call ResetVisualFlags 
 
     mov eax, enemiesSpawned
     cmp eax, enemiesTotal
@@ -326,6 +356,7 @@ FindSlot:
 FoundSlot:
     mov DWORD PTR [esi + EnemyOff_Active], 1
     mov DWORD PTR [esi + EnemyOff_PathIdx], 0
+    mov DWORD PTR [esi + EnemyOff_IsHit], 0 ; 初始化為未受傷
     
     mov eax, wave
     imul eax, 3
@@ -362,7 +393,7 @@ NextEnemyMove:
     ret
 MoveEnemies ENDP
 
-; --- 塔攻擊 ---
+; --- 塔攻擊 (修改加入變色邏輯) ---
 TowersAttack PROC
     mov esi, OFFSET towers
     mov ecx, MaxTowers
@@ -402,6 +433,12 @@ EnemyCheckLoop:
     cmp ebp, TowerRange
     jg NextEnemyCheck
     
+    ; === 攻擊發生 ===
+    ; 標記視覺效果
+    mov DWORD PTR [esi + TowerOff_IsAttacking], 1
+    mov DWORD PTR [edi + EnemyOff_IsHit], 1
+
+    ; 扣血
     mov eax, [edi + EnemyOff_HP]
     sub eax, TowerDamage
     mov [edi + EnemyOff_HP], eax
@@ -491,6 +528,7 @@ Build:
     mov DWORD PTR [edi + TowerOff_Active], 1
     mov [edi + TowerOff_X], ebx
     mov [edi + TowerOff_Y], ecx
+    mov DWORD PTR [edi + TowerOff_IsAttacking], 0
     sub money, TowerCost
     
     mov edx, OFFSET strMsgBuild
@@ -509,7 +547,7 @@ BuildFailTooManyTower:
     ret
 BuildTower ENDP
 
-; --- 繪製畫面 ---
+; --- 繪製畫面 (修改加入變色判定) ---
 Draw PROC
     mov edi, OFFSET mapBuffer
     mov ecx, MapWidth * MapHeight
@@ -545,10 +583,19 @@ DrawTw: ; 生成塔
     mov eax, [esi + TowerOff_Y]
     imul eax, MapWidth
     add eax, ebx
+    
+    ; [修改] 檢查是否攻擊中，寫入 'A' 或 'T'
+    cmp DWORD PTR [esi + TowerOff_IsAttacking], 1
+    je SetTowerAttack
     mov BYTE PTR [mapBuffer + eax], 'T'
+    jmp NextDrTw
+SetTowerAttack:
+    mov BYTE PTR [mapBuffer + eax], 'A' ; 特殊字元標記攻擊
+
 NextDrTw:
     add esi, TowerSize
     loop DrawTw
+
     mov esi, OFFSET enemies
     add esi, (MaxEnemies - 1) * EnemySize
     mov ecx, MaxEnemies
@@ -566,11 +613,19 @@ DrawEnLoop:
     mov eax, [edx+4] 
     imul eax, MapWidth
     add eax, ebx
+    
+    ; [修改] 檢查是否受傷，寫入 'H' 或 'E'
+    cmp DWORD PTR [esi + EnemyOff_IsHit], 1
+    je SetEnemyHit
     mov BYTE PTR [mapBuffer + eax], 'E'
+    jmp NextDrEn
+SetEnemyHit:
+    mov BYTE PTR [mapBuffer + eax], 'H' ; 特殊字元標記受傷
     
 NextDrEn:
     sub esi, EnemySize
     loop DrawEnLoop
+    
     call Clrscr
     
     mov edx, OFFSET strTitle1
@@ -629,15 +684,20 @@ PrintColLoop:
     
     cmp al, 'T'
     je ColYellow
+    cmp al, 'A'     ; 攻擊中的塔
+    je ColAttack    
     cmp al, 'E'
-    je ColRed
+    je ColMagenta   ; 普通敵人 (紫)
+    cmp al, 'H'     ; 受傷的敵人 (紅)
+    je ColHit
     cmp al, 'S'
     je ColBlue
     cmp al, '.'
     je ColGray
+    
+    ; 預設白色
     mov eax, white + (black * 16)
     call SetTextColor
-    
     mov al, [mapBuffer + esi] 
     jmp PrChar
     
@@ -646,11 +706,25 @@ ColYellow:
     call SetTextColor
     mov al, 'T'
     jmp PrChar
-ColRed:
-    mov eax, lightRed + (black * 16)
+
+ColAttack:
+    mov eax, lightCyan + (black * 16) ; 攻擊顏色
+    call SetTextColor
+    mov al, 'T' ; 顯示回 T
+    jmp PrChar
+
+ColMagenta:
+    mov eax, magenta + (black * 16) ; 普通敵人顏色
     call SetTextColor
     mov al, 'E'
     jmp PrChar
+
+ColHit:
+    mov eax, lightRed + (black * 16) ; 受傷顏色
+    call SetTextColor
+    mov al, 'E' ; 顯示回 E
+    jmp PrChar
+
 ColBlue:
     mov eax, lightBlue + (black * 16)
     call SetTextColor
@@ -683,9 +757,6 @@ PrChar:
     call WriteString
 
     call Crlf
-    
-    
-
     ret 8
 Draw ENDP
 
