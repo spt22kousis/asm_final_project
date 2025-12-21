@@ -533,6 +533,7 @@ PrepLoop:
     call WriteString
     
     call ReadChar ;讀取指令
+    call WriteChar ; [新增] 顯示輸入指令
     
     cmp al, 's' ;按s進入戰鬥
     je EndPrep
@@ -557,6 +558,7 @@ BuildMode: ; 建築模式
     mov edx, OFFSET strInputX
     call WriteString
     call ReadChar
+    call WriteChar ; [修正] 顯示輸入的字元
     call Crlf
 
     ; 轉換小寫為大寫
@@ -594,6 +596,7 @@ SellMode: ; 販賣模式
     mov edx, OFFSET strInputX
     call WriteString
     call ReadChar
+    call WriteChar ; [修正] 顯示輸入的字元
     call Crlf
 
     ; 轉換小寫為大寫
