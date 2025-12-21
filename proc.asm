@@ -67,6 +67,7 @@ WaveToClear EQU 3
     
     ; --- 地圖資訊 ---
     mapBuffer   BYTE  MapWidth * MapHeight DUP(' ')
+    rangeBuffer BYTE  MapWidth * MapHeight DUP(0) ; [新增] 攻擊範圍標記
     pathArray   DWORD 200 DUP(0)
     pathLength  DWORD 0
 
@@ -1083,6 +1084,86 @@ NextDrEn:
     sub esi, EnemySize
     loop DrawEnLoop
     
+    ; --- [新增] 計算攻擊範圍並標記到 rangeBuffer ---
+    ; 1. 清空 rangeBuffer
+    mov edi, OFFSET rangeBuffer
+    mov ecx, MapWidth * MapHeight
+    mov al, 0
+    rep stosb
+    
+    ; 2. 掃描所有格子，檢查是否在任何攻擊中的塔的範圍內
+    mov ebx, 0 ; Y座標
+RangeYLoop:
+    mov ecx, 0 ; X座標
+RangeXLoop:
+    ; 檢查所有塔
+    mov esi, OFFSET towers
+    mov edx, MaxTowers
+CheckTwRange:
+    cmp DWORD PTR [esi + TowerOff_Active], 1
+    jne NextTwCheck
+    cmp DWORD PTR [esi + TowerOff_IsAttacking], 1
+    jne NextTwCheck
+    
+    ; 計算距離平方: (Tx-Cx)^2 + (Ty-Cy)^2
+    push eax
+    push ebx
+    push ecx
+    push edx
+    
+    mov eax, [esi + TowerOff_X]
+    sub eax, ecx ; Tx - Cx
+    imul eax, eax
+    
+    mov edx, eax ; edx = dx^2
+    
+    mov eax, [esi + TowerOff_Y]
+    sub eax, ebx ; Ty - Cy
+    imul eax, eax
+    
+    add edx, eax ; edx = distSq
+    
+    cmp edx, TowerRange
+    jg NotInRange
+    
+    ; 在範圍內 -> 標記並跳出
+    pop edx
+    pop ecx
+    pop ebx
+    pop eax
+    
+    ; 計算 rangeBuffer index
+    push eax
+    push edx
+    mov eax, ebx
+    imul eax, MapWidth
+    add eax, ecx
+    mov BYTE PTR [rangeBuffer + eax], 1
+    pop edx
+    pop eax
+    
+    jmp NextCellRange ; 只要有一個塔涵蓋此格，就標記並換下一格
+    
+NotInRange:
+    pop edx
+    pop ecx
+    pop ebx
+    pop eax
+
+NextTwCheck:
+    add esi, TowerSize
+    dec edx
+    jnz CheckTwRange
+
+NextCellRange:
+    inc ecx
+    cmp ecx, MapWidth
+    jl RangeXLoop
+    inc ebx
+    cmp ebx, MapHeight
+    jl RangeYLoop
+    ; --- 範圍計算結束 ---
+
     call Clrscr
     
     mov edx, OFFSET strTitle1
@@ -1139,60 +1220,74 @@ PrintColLoop:
     
     mov al, [mapBuffer + esi]
     
+    ; --- 決定前景顏色 ---
     cmp al, 'T'
-    je ColYellow
-    cmp al, 'A'     ; 攻擊中的塔
-    je ColAttack    
+    je FgYellow
+    cmp al, 'A'
+    je FgCyan
     cmp al, 'E'
-    je ColMagenta   ; 普通敵人 (紫)
-    cmp al, 'H'     ; 受傷的敵人 (紅)
-    je ColHit
+    je FgMagenta
+    cmp al, 'H'
+    je FgHit
     cmp al, 'S'
-    je ColBlue
+    je FgBlue
     cmp al, '.'
-    je ColGray
+    je FgGray
     
-    ; 預設白色
-    mov eax, white + (black * 16)
-    call SetTextColor
-    mov al, [mapBuffer + esi] 
-    jmp PrChar
+    ; 預設前景
+    mov ah, white
+    jmp CheckBg
     
-ColYellow:
-    mov eax, yellow + (black * 16)
-    call SetTextColor
-    mov al, 'T'
-    jmp PrChar
+FgYellow:
+    mov ah, yellow
+    jmp CheckBg
+FgCyan:
+    mov ah, lightCyan
+    mov al, 'T' ; A -> T
+    jmp CheckBg
+FgMagenta:
+    mov ah, magenta
+    jmp CheckBg
+FgHit:
+    mov ah, lightRed
+    mov al, 'E' ; H -> E
+    jmp CheckBg
+FgBlue:
+    mov ah, lightBlue
+    jmp CheckBg
+FgGray:
+    mov ah, gray
+    jmp CheckBg
 
-ColAttack:
-    mov eax, lightCyan + (black * 16) ; 攻擊顏色
-    call SetTextColor
-    mov al, 'T' ; 顯示回 T
-    jmp PrChar
+CheckBg:
+    ; --- 決定背景顏色 ---
+    ; 檢查 rangeBuffer[esi]
+    push ebx
+    mov bl, [rangeBuffer + esi]
+    cmp bl, 1
+    je BgRange
+    mov ebx, black ; 預設背景
+    jmp SetColor
 
-ColMagenta:
-    mov eax, magenta + (black * 16) ; 普通敵人顏色
-    call SetTextColor
-    mov al, 'E'
-    jmp PrChar
+BgRange:
+    mov ebx, blue ; 範圍內背景 (深藍)
+    ; 如果前景也是藍色系，調整一下以免看不清?
+    cmp ah, lightBlue
+    jne SetColor
+    mov ah, white ; S點在範圍內改為白色
 
-ColHit:
-    mov eax, lightRed + (black * 16) ; 受傷顏色
-    call SetTextColor
-    mov al, 'E' ; 顯示回 E
-    jmp PrChar
-
-ColBlue:
-    mov eax, lightBlue + (black * 16)
-    call SetTextColor
-    mov al, 'S'
-    jmp PrChar
-ColGray:
-    mov eax, gray + (black * 16)
-    call SetTextColor
-    mov al, '.'
+SetColor:
+    ; 組合顏色: ah(fg) + ebx(bg * 16)
+    push eax ; 保存 al (char) 和 ah (fg)
     
-PrChar:
+    movzx eax, ah ; eax = fg
+    shl ebx, 4    ; ebx = bg * 16
+    add eax, ebx  ; eax = attribute
+    call SetTextColor
+    
+    pop eax ; 還原 al (char)
+    pop ebx ; 還原 ebx (outer loop Y counter)
+    
     call WriteChar
     
     inc edi
