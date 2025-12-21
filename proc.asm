@@ -63,6 +63,7 @@ WaveToClear EQU 3
     health      DWORD ?
     wave        DWORD ?
     gameOver    DWORD 0
+    towersBuilt DWORD 0
     
     ; --- 地圖資訊 ---
     mapBuffer   BYTE  MapWidth * MapHeight DUP(' ')
@@ -85,7 +86,7 @@ WaveToClear EQU 3
     strTitle2   BYTE ") ===", 0dh, 0ah, 0
     strMoney    BYTE "Money: $", 0
     strHealth   BYTE "  |  Base HP: ", 0
-    strPrep     BYTE 0dh, 0ah, "State: [PREP] (b)Build ($50) | (s)Start ", 0dh, 0ah, "Enter command here: ", 0
+    strPrep     BYTE 0dh, 0ah, "State: [PREP] (b)Build ($50) | (s)Start | (q)Quit ", 0dh, 0ah, "Enter command here: ", 0
     strBattle   BYTE 0dh, 0ah, "State: [BATTLE] Enemies Left: ", 0
     strInputX   BYTE "Enter X: ", 0
     strInputY   BYTE "Enter Y: ", 0
@@ -109,6 +110,10 @@ WaveToClear EQU 3
     strSideTower   BYTE "Tower: [T] ($50)", 0
     strSideHP      BYTE "Base HP: ", 0
     strHeart       BYTE "❤", 0
+
+; --- 遊戲結束資訊 ---
+    strGameOverInfo1 BYTE "Waves Cleared: ", 0
+    strGameOverInfo2 BYTE "Towers Built: ", 0
 
 ; --- 勝利畫面 (亮青色) ---
     W_1 BYTE "  █████████    ███                                    ██████████             ███              ", 0dh, 0ah, 0
@@ -248,11 +253,24 @@ Lose: ; 關卡挑戰失敗，顯示失敗文字，給玩家選擇重玩或關掉
     call WriteString
     mov edx, OFFSET L_16
     call WriteString
-    mov edx, OFFSET L_17
-    call WriteString
-
     mov eax, white + (black * 16)
     call SetTextColor
+
+    ; --- Display Stats ---
+    call Crlf
+    mov edx, OFFSET strGameOverInfo1
+    call WriteString
+    mov eax, wave
+    dec eax ; waves cleared = current wave - 1
+    call WriteDec
+    call Crlf
+
+    mov edx, OFFSET strGameOverInfo2
+    call WriteString
+    mov eax, towersBuilt
+    call WriteDec
+    call Crlf
+
     mov edx, OFFSET strRetryPrompt
     call WriteString
 
@@ -311,6 +329,21 @@ Win: ; 關卡挑戰成功，顯示通關文字，給玩家選擇重玩或關掉�
 
     mov eax, white + (black * 16)
     call SetTextColor
+
+    ; --- Display Stats ---
+    call Crlf
+    mov edx, OFFSET strGameOverInfo1
+    call WriteString
+    mov eax, wave
+    call WriteDec
+    call Crlf
+
+    mov edx, OFFSET strGameOverInfo2
+    call WriteString
+    mov eax, towersBuilt
+    call WriteDec
+    call Crlf
+
     mov edx, OFFSET strRetryPrompt
     call WriteString
 
@@ -405,6 +438,7 @@ InitGame PROC
     mov health, StartBaseHP
     mov wave, 1
     mov gameOver, 0
+    mov towersBuilt, 0
     call InitPath
     
     cld
@@ -492,9 +526,13 @@ PrepLoop:
     call ReadChar ;讀取指令
     
     cmp al, 's' ;按s進入戰鬥
-    je StartBattle
+    je EndPrep
     cmp al, 'b' ;按b進入建築模式
     je BuildMode
+    cmp al, 'q'
+    je PlayerQuit
+    cmp al, 'Q'
+    je PlayerQuit
 
     jmp PrepLoop
 
@@ -525,7 +563,11 @@ BuildFailNotEnoughMoney:
     call DelayBig
     jmp PrepLoop
 
-StartBattle:
+PlayerQuit:
+    mov health, 0
+    jmp EndPrep
+
+EndPrep:
     ret
 RunPrepPhase ENDP
 
@@ -796,6 +838,7 @@ Build:
     mov [edi + TowerOff_Y], ecx
     mov DWORD PTR [edi + TowerOff_IsAttacking], 0
     sub money, TowerCost
+    inc towersBuilt
     
     mov edx, OFFSET strMsgBuild
     call WriteString
