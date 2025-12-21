@@ -542,12 +542,30 @@ BuildMode: ; 建築模式
     cmp money, TowerCost ; 偵錯: 錢不夠
     jl BuildFailNotEnoughMoney 
     
-    ; 輸入 X
+    ; 輸入 X (可接受 'A'-'T' 或 'a'-'t')
     mov edx, OFFSET strInputX
     call WriteString
-    call ReadInt
-    mov ebx, eax 
+    call ReadChar
+    call Crlf
 
+    ; 轉換小寫為大寫
+    cmp al, 'a'
+    jb CheckUpperX
+    cmp al, 'z'
+    ja CheckUpperX
+    sub al, ('a' - 'A')
+
+CheckUpperX:
+    ; 驗證輸入並轉換
+    cmp al, 'A'
+    jb PrepLoop ; Invalid input, go back to menu
+    cmp al, 'T'
+    ja PrepLoop ; Invalid input, go back to menu
+
+    ; 轉換 'A'-'T' 為 0-19
+    sub al, 'A'
+    movzx ebx, al
+    
     ; 輸入 Y 
     mov edx, OFFSET strInputY
     call WriteString
