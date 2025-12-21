@@ -34,27 +34,27 @@ WaveToClear EQU 3
 
 .data
     ; --- Logo 上半部 (ARCHLIGHTS) ---
-    L1_1 BYTE "   █████████                      ████   ███           █████       █████                 ", 0dh, 0ah, 0
-    L1_2 BYTE "  ███░░░░░███                    ░░███  ░░░           ░░███       ░░███                  ", 0dh, 0ah, 0
-    L1_3 BYTE " ░███    ░███  ████████   ██████  ░███  ████   ███████ ░███████   ███████    █████  ██   ", 0dh, 0ah, 0
-    L1_4 BYTE " ░███████████ ░░███░░███ ███░░███ ░███ ░░███  ███░░███ ░███░░███ ░░░███    ░███░░  ░░    ", 0dh, 0ah, 0
-    L1_5 BYTE " ░███░░░░░███  ░███ ░░░ ░███ ░░░  ░███  ░███ ░███ ░███ ░███ ░███   ░███    ░░█████       ", 0dh, 0ah, 0
-    L1_6 BYTE " ░███    ░███  ░███     ░███  ███ ░███  ░███ ░███ ░███ ░███ ░███   ░███ ███ ░░░░███      ", 0dh, 0ah, 0
-    L1_7 BYTE " █████   █████ █████    ░░██████  █████ █████░░███████ ████ █████  ░░█████  ██████  ██   ", 0dh, 0ah, 0
-    L1_8 BYTE "░░░░░   ░░░░░ ░░░░░      ░░░░░░  ░░░░░ ░░░░░  ░░░░░███░░░░ ░░░░░    ░░░░░  ░░░░░░  ░░    ", 0dh, 0ah, 0
-    L1_9 BYTE "                                              ███ ░███                                   ", 0dh, 0ah, 0
-    L1_0 BYTE "                                             ░░██████                                    ", 0dh, 0ah, 0
-    L1_A BYTE "                                              ░░░░░░                                     ", 0dh, 0ah, 0
+    L1_1 BYTE "   WWWWWWWWW                      WWWW   WWW           WWWWW       WWWWW                 ", 0dh, 0ah, 0
+    L1_2 BYTE "  WWW/////WWW                    //WWW  ///           //WWW       //WWW                  ", 0dh, 0ah, 0
+    L1_3 BYTE " /WWW    /WWW  WWWWWWWW   WWWWWW  /WWW  WWWW   WWWWWWW /WWWWWWW   WWWWWWW    WWWWW  WW   ", 0dh, 0ah, 0
+    L1_4 BYTE " /WWWWWWWWWWW //WWW//WWW WWW//WWW /WWW //WWW  WWW//WWW /WWW//WWW ///WWW    /WWW//  //    ", 0dh, 0ah, 0
+    L1_5 BYTE " /WWW/////WWW  /WWW /// /WWW ///  /WWW  /WWW /WWW /WWW /WWW /WWW   /WWW    //WWWWW       ", 0dh, 0ah, 0
+    L1_6 BYTE " /WWW    /WWW  /WWW     /WWW  WWW /WWW  /WWW /WWW /WWW /WWW /WWW   /WWW WWW ////WWW      ", 0dh, 0ah, 0
+    L1_7 BYTE " WWWWW   WWWWW WWWWW    //WWWWWW  WWWWW WWWWW//WWWWWWW WWWW WWWWW  //WWWWW  WWWWWW  WW   ", 0dh, 0ah, 0
+    L1_8 BYTE "/////   ///// /////      //////  ///// /////  /////WWW//// /////    /////  //////  //    ", 0dh, 0ah, 0
+    L1_9 BYTE "                                              WWW /WWW                                   ", 0dh, 0ah, 0
+    L1_0 BYTE "                                             //WWWWWW                                    ", 0dh, 0ah, 0
+    L1_A BYTE "                                              //////                                     ", 0dh, 0ah, 0
 
     ; --- Logo 下半部 (TOWER DEF) ---
-    L2_1 BYTE " ███████████                                             ██████████               ██████ ", 0dh, 0ah, 0
-    L2_2 BYTE "░█░░░███░░░█                                            ░░███░░░░███             ███░░███", 0dh, 0ah, 0
-    L2_3 BYTE "░   ░███  ░   ██████  █████ ███ █████  ██████  ████████  ░███   ░░███  ██████   ░███ ░░░ ", 0dh, 0ah, 0
-    L2_4 BYTE "    ░███     ███░░███░░███ ░███░░███  ███░░███░░███░░███ ░███    ░███ ███░░███ ███████   ", 0dh, 0ah, 0
-    L2_5 BYTE "    ░███    ░███ ░███ ░███ ░███ ░███ ░███████  ░███ ░░░  ░███    ░███░███████ ░░░███░    ", 0dh, 0ah, 0
-    L2_6 BYTE "    ░███    ░███ ░███ ░░███████████  ░███░░░   ░███      ░███    ███ ░███░░░    ░███     ", 0dh, 0ah, 0
-    L2_7 BYTE "    █████   ░░██████   ░░████░████   ░░██████  █████     ██████████  ░░██████   █████    ", 0dh, 0ah, 0
-    L2_8 BYTE "   ░░░░░     ░░░░░░     ░░░░ ░░░░     ░░░░░░  ░░░░░     ░░░░░░░░░░    ░░░░░░   ░░░░░     ", 0dh, 0ah, 0
+    L2_1 BYTE " WWWWWWWWWWW                                             WWWWWWWWWW               WWWWWW ", 0dh, 0ah, 0
+    L2_2 BYTE "/W///WWW///W                                            //WWW////WWW             WWW//WWW", 0dh, 0ah, 0
+    L2_3 BYTE "/   /WWW  /   WWWWWW  WWWWW WWW WWWWW  WWWWWW  WWWWWWWW  /WWW   //WWW  WWWWWW   /WWW /// ", 0dh, 0ah, 0
+    L2_4 BYTE "    /WWW     WWW//WWW//WWW /WWW//WWW  WWW//WWW//WWW//WWW /WWW    /WWW WWW//WWW WWWWWWW   ", 0dh, 0ah, 0
+    L2_5 BYTE "    /WWW    /WWW /WWW /WWW /WWW /WWW /WWWWWWW  /WWW ///  /WWW    /WWW/WWWWWWW ///WWW/    ", 0dh, 0ah, 0
+    L2_6 BYTE "    /WWW    /WWW /WWW //WWWWWWWWWWW  /WWW///   /WWW      /WWW    WWW /WWW///    /WWW     ", 0dh, 0ah, 0
+    L2_7 BYTE "    WWWWW   //WWWWWW   //WWWW/WWWW   //WWWWWW  WWWWW     WWWWWWWWWW  //WWWWWW   WWWWW    ", 0dh, 0ah, 0
+    L2_8 BYTE "   /////     //////     //// ////     //////  /////     //////////    //////   /////     ", 0dh, 0ah, 0
 
     strStartPrompt BYTE 0dh, 0ah, "                   >> Press [P] to Play | [Q] to Quit <<", 0dh, 0ah, 0
 
@@ -121,44 +121,44 @@ WaveToClear EQU 3
     strGameOverInfo2 BYTE "Towers Built: ", 0
 
 ; --- 勝利畫面 (亮青色) ---
-    W_1 BYTE "  █████████    ███                                    ██████████             ███              ", 0dh, 0ah, 0
-    W_2 BYTE " ███░░░░░███  ░███                                   ░░███░░░░███           ░███              ", 0dh, 0ah, 0
-    W_3 BYTE "░███    ░░░  ███████    ██████    ███████  ██████     ░███   ░███  ██████  ███████    ██████  ", 0dh, 0ah, 0
-    W_4 BYTE "░░█████████ ░░░███░    ░░░░░███  ███░░███ ███░░███    ░█████████  ███░░███░░░███░    ░░░░░███ ", 0dh, 0ah, 0
-    W_5 BYTE " ░░░░░░░░███  ░███      ███████ ░███ ░███░███████     ░███░░░░███░███████   ░███      ███████ ", 0dh, 0ah, 0
-    W_6 BYTE " ███    ░███  ░███ ███ ███░░███ ░███ ░███░███░░░      ░███   ░███░███░░░    ░███ ███ ███░░███ ", 0dh, 0ah, 0
-    W_7 BYTE "░░█████████   ░░█████ ░░███████ ░░███████░░██████     ██████████ ░░██████   ░░█████ ░░███████ ", 0dh, 0ah, 0
-    W_8 BYTE " ░░░░░░░░░     ░░░░░   ░░░░░░░   ░░░░░███ ░░░░░░     ░░░░░░░░░░   ░░░░░░     ░░░░░   ░░░░░░░  ", 0dh, 0ah, 0
-    W_9 BYTE "                                 ███ ░███                                                     ", 0dh, 0ah, 0
-    W_10 BYTE "                                ░░██████                                                     ", 0dh, 0ah, 0
-    W_11 BYTE "                                 ░░░░░░                                                      ", 0dh, 0ah, 0
-    W_12 BYTE "   █████████  ████                                            █████ ███ ███ ███              ", 0dh, 0ah, 0
-    W_13 BYTE "  ███░░░░░███░░███                                           ░░███ ░███░███░███              ", 0dh, 0ah, 0
-    W_14 BYTE " ███     ░░░  ░███   ██████   ██████   ████████   ██████   ███████ ░███░███░███              ", 0dh, 0ah, 0
-    W_15 BYTE "░███          ░███  ███░░███ ░░░░░███ ░░███░░███ ███░░███ ███░░███ ░███░███░███              ", 0dh, 0ah, 0
-    W_16 BYTE "░███          ░███ ░███████   ███████  ░███ ░░░ ░███████ ░███ ░███ ░███░███░███              ", 0dh, 0ah, 0
-    W_17 BYTE "░░███     ███ ░███ ░███░░░   ███░░███  ░███     ░███░░░  ░███ ░███ ░░░ ░░░ ░░░               ", 0dh, 0ah, 0
-    W_18 BYTE " ░░█████████  █████░░██████ ░░███████  █████    ░░██████ ░░████████ ███ ███ ███              ", 0dh, 0ah, 0
-    W_19 BYTE "  ░░░░░░░░░  ░░░░░  ░░░░░░   ░░░░░░░  ░░░░░      ░░░░░░   ░░░░░░░░ ░░░ ░░░ ░░░               ", 0dh, 0ah, 0
+    W_1 BYTE "  WWWWWWWWW    WWW                                    WWWWWWWWWW             WWW              ", 0dh, 0ah, 0
+    W_2 BYTE " WWW/////WWW  /WWW                                   //WWW////WWW           /WWW              ", 0dh, 0ah, 0
+    W_3 BYTE "/WWW    ///  WWWWWWW    WWWWWW    WWWWWWW  WWWWWW     /WWW   /WWW  WWWWWW  WWWWWWW    WWWWWW  ", 0dh, 0ah, 0
+    W_4 BYTE "//WWWWWWWWW ///WWW/    /////WWW  WWW//WWW WWW//WWW    /WWWWWWWWW  WWW//WWW///WWW/    /////WWW ", 0dh, 0ah, 0
+    W_5 BYTE " ////////WWW  /WWW      WWWWWWW /WWW /WWW/WWWWWWW     /WWW////WWW/WWWWWWW   /WWW      WWWWWWW ", 0dh, 0ah, 0
+    W_6 BYTE " WWW    /WWW  /WWW WWW WWW//WWW /WWW /WWW/WWW///      /WWW   /WWW/WWW///    /WWW WWW WWW//WWW ", 0dh, 0ah, 0
+    W_7 BYTE "//WWWWWWWWW   //WWWWW //WWWWWWW //WWWWWWW//WWWWWW     WWWWWWWWWW //WWWWWW   //WWWWW //WWWWWWW ", 0dh, 0ah, 0
+    W_8 BYTE " /////////     /////   ///////   /////WWW //////     //////////   //////     /////   ///////  ", 0dh, 0ah, 0
+    W_9 BYTE "                                 WWW /WWW                                                     ", 0dh, 0ah, 0
+    W_10 BYTE "                                //WWWWWW                                                     ", 0dh, 0ah, 0
+    W_11 BYTE "                                 //////                                                      ", 0dh, 0ah, 0
+    W_12 BYTE "   WWWWWWWWW  WWWW                                            WWWWW WWW WWW WWW              ", 0dh, 0ah, 0
+    W_13 BYTE "  WWW/////WWW//WWW                                           //WWW /WWW/WWW/WWW              ", 0dh, 0ah, 0
+    W_14 BYTE " WWW     ///  /WWW   WWWWWW   WWWWWW   WWWWWWWW   WWWWWW   WWWWWWW /WWW/WWW/WWW              ", 0dh, 0ah, 0
+    W_15 BYTE "/WWW          /WWW  WWW//WWW /////WWW //WWW//WWW WWW//WWW WWW//WWW /WWW/WWW/WWW              ", 0dh, 0ah, 0
+    W_16 BYTE "/WWW          /WWW /WWWWWWW   WWWWWWW  /WWW /// /WWWWWWW /WWW /WWW /WWW/WWW/WWW              ", 0dh, 0ah, 0
+    W_17 BYTE "//WWW     WWW /WWW /WWW///   WWW//WWW  /WWW     /WWW///  /WWW /WWW /// /// ///               ", 0dh, 0ah, 0
+    W_18 BYTE " //WWWWWWWWW  WWWWW//WWWWWW //WWWWWWW  WWWWW    //WWWWWW //WWWWWWWW WWW WWW WWW              ", 0dh, 0ah, 0
+    W_19 BYTE "  /////////  /////  //////   ///////  /////      //////   //////// /// /// ///               ", 0dh, 0ah, 0
 
     ; --- 失敗畫面 (紅色) ---
-    L_1 BYTE " ██████   ██████  ███                   ███                     ", 0dh, 0ah, 0
-    L_2 BYTE "░░██████ ██████  ░░░                   ░░░                      ", 0dh, 0ah, 0
-    L_3 BYTE " ░███░█████░███  ████   █████   █████  ████   ██████  ████████  ", 0dh, 0ah, 0
-    L_4 BYTE " ░███░░███ ░███ ░░███  ███░░   ███░░  ░░███  ███░░███░░███░░███ ", 0dh, 0ah, 0
-    L_5 BYTE " ░███ ░░░  ░███  ░███ ░░█████ ░░█████  ░███ ░███ ░███ ░███ ░███ ", 0dh, 0ah, 0
-    L_6 BYTE " ░███      ░███  ░███  ░░░░███ ░░░░███ ░███ ░███ ░███ ░███ ░███ ", 0dh, 0ah, 0
-    L_7 BYTE " █████     █████ █████ ██████  ██████  █████░░██████  ████ █████", 0dh, 0ah, 0
-    L_8 BYTE "░░░░░     ░░░░░ ░░░░░ ░░░░░░  ░░░░░░  ░░░░░  ░░░░░░  ░░░░ ░░░░░ ", 0dh, 0ah, 0
-    L_9 BYTE "                                                                ", 0dh, 0ah, 0
-    L_10 BYTE " ███████████          ███  ████               █████           ", 0dh, 0ah, 0
-    L_11 BYTE "░░███░░░░░░█         ░░░  ░░███              ░░███            ", 0dh, 0ah, 0
-    L_12 BYTE " ░███   █ ░ ██████   ████  ░███   ██████   ███████            ", 0dh, 0ah, 0
-    L_13 BYTE " ░███████  ░░░░░███ ░░███  ░███  ███░░███ ███░░███            ", 0dh, 0ah, 0
-    L_14 BYTE " ░███░░░█   ███████  ░███  ░███ ░███████ ░███ ░███            ", 0dh, 0ah, 0
-    L_15 BYTE " ░███  ░   ███░░███  ░███  ░███ ░███░░░  ░███ ░███            ", 0dh, 0ah, 0
-    L_16 BYTE " █████    ░░████████ █████ █████░░██████ ░░████████           ", 0dh, 0ah, 0
-    L_17 BYTE "░░░░░      ░░░░░░░░ ░░░░░ ░░░░░  ░░░░░░   ░░░░░░░░            ", 0dh, 0ah, 0
+    L_1 BYTE "   WWWWWWWWW                                    ", 0dh, 0ah, 0
+    L_2 BYTE "  WWW/////WWW                                   ", 0dh, 0ah, 0
+    L_3 BYTE " WWW     ///   WWWWWW   WWWWWWWWWWWWW    WWWWWW ", 0dh, 0ah, 0
+    L_4 BYTE "/WWW          /////WWW //WWW//WWW//WWW  WWW//WWW", 0dh, 0ah, 0
+    L_5 BYTE "/WWW    WWWWW  WWWWWWW  /WWW /WWW /WWW /WWWWWWW ", 0dh, 0ah, 0
+    L_6 BYTE "//WWW  //WWW  WWW//WWW  /WWW /WWW /WWW /WWW///  ", 0dh, 0ah, 0
+    L_7 BYTE " //WWWWWWWWW //WWWWWWWW WWWWW/WWW WWWWW//WWWWWW ", 0dh, 0ah, 0
+    L_8 BYTE "  /////////   //////// ///// /// /////  //////  ", 0dh, 0ah, 0
+    L_9 BYTE "                                                ", 0dh, 0ah, 0
+    L_10 BYTE "    WWWWWWW                                     ", 0dh, 0ah, 0
+    L_11 BYTE "  WWW/////WWW                                   ", 0dh, 0ah, 0
+    L_12 BYTE " WWW     //WWW WWWWW WWWWW  WWWWWW  WWWWWWWW    ", 0dh, 0ah, 0
+    L_13 BYTE "/WWW      /WWW//WWW //WWW  WWW//WWW//WWW//WWW   ", 0dh, 0ah, 0
+    L_14 BYTE "/WWW      /WWW /WWW  /WWW /WWWWWWW  /WWW ///    ", 0dh, 0ah, 0
+    L_15 BYTE "//WWW     WWW  //WWW WWW  /WWW///   /WWW        ", 0dh, 0ah, 0
+    L_16 BYTE " ///WWWWWWW/    //WWWWW   //WWWWWW  WWWWW       ", 0dh, 0ah, 0
+    L_17 BYTE "   ///////       /////     //////  /////        ", 0dh, 0ah, 0
     
     strRetryPrompt BYTE 0dh, 0ah, "             >> Press [R] to Replay | [Q] to Quit <<", 0dh, 0ah, 0
 
@@ -547,30 +547,12 @@ BuildMode: ; 建築模式
     cmp money, TowerCost ; 偵錯: 錢不夠
     jl BuildFailNotEnoughMoney 
     
-    ; 輸入 X (可接受 'A'-'T' 或 'a'-'t')
+    ; 輸入 X
     mov edx, OFFSET strInputX
     call WriteString
-    call ReadChar
-    call Crlf
+    call ReadInt
+    mov ebx, eax 
 
-    ; 轉換小寫為大寫
-    cmp al, 'a'
-    jb CheckUpperX
-    cmp al, 'z'
-    ja CheckUpperX
-    sub al, ('a' - 'A')
-
-CheckUpperX:
-    ; 驗證輸入並轉換
-    cmp al, 'A'
-    jb PrepLoop ; Invalid input, go back to menu
-    cmp al, 'T'
-    ja PrepLoop ; Invalid input, go back to menu
-
-    ; 轉換 'A'-'T' 為 0-19
-    sub al, 'A'
-    movzx ebx, al
-    
     ; 輸入 Y 
     mov edx, OFFSET strInputY
     call WriteString
