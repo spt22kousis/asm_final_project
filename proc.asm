@@ -1,39 +1,29 @@
-; 塔防遊戲 - Irvine32 組合語言版 (Debugged)
-; 修正了 Draw 函數導致的堆疊崩潰 (Stack Corruption)
-; 修正者：Gemini
-
 INCLUDE Irvine32.inc
 main          EQU start@0
-; --- 常數定義 ---
-MapWidth EQU 20
-MapHeight EQU 10
-MaxEnemies EQU 50
-MaxTowers EQU 30
-TowerCost EQU 50
-TowerDamage EQU 2
-BaseHP EQU 20
-StartMoney EQU 150
+
+; --- 遊戲基本數值定義 ---
+MapWidth EQU 20 ; 地圖寬度
+MapHeight EQU 10 ; 地圖高度
+MaxEnemies EQU 50 ; 敵人數量上限
+MaxTowers EQU 30 ; 塔數量上限
+TowerCost EQU 50 ; 塔價錢
+TowerDamage EQU 2 ; 塔傷害
+StartBaseHP EQU 3 ; 初始基地血量
+StartMoney EQU 120 ; 初始金錢
 GameTickMs EQU 250
-TowerRangeSq EQU 12
-
-; --- 結構體大小定義 (Bytes) ---
-; Point: x(4), y(4)
-PointSize EQU 8
-
-; Enemy: id(4), pathIndex(4), hp(4), maxHp(4), active(4)
-EnemySize EQU 20
+TowerRange EQU 35 ; 塔射程
+EnemySize EQU 20 ; 敵人資訊: id(4), pathIndex(4), hp(4), maxHp(4), active(4)
 EnemyOff_ID EQU 0
 EnemyOff_PathIdx EQU 4
 EnemyOff_HP EQU 8
 EnemyOff_MaxHP EQU 12
 EnemyOff_Active EQU 16
-
-; Tower: x(4), y(4), active(4), killCount(4)
-TowerSize EQU 16
+TowerSize EQU 16 ; 塔資訊: x(4), y(4), active(4), killCount(4)
 TowerOff_X EQU 0
 TowerOff_Y EQU 4
 TowerOff_Active EQU 8
 TowerOff_KillCount EQU 12
+WaveToClear EQU 3
 
 .data
     ; --- 遊戲狀態 ---
@@ -42,10 +32,12 @@ TowerOff_KillCount EQU 12
     wave        DWORD ?
     gameOver    DWORD 0
     
-    ; --- 陣列 ---
+    ; --- 地圖資訊 ---
     mapBuffer   BYTE  MapWidth * MapHeight DUP(' ')
-    pathArray   DWORD 100 * 2 DUP(0)
+    pathArray   DWORD 200 DUP(0)
     pathLength  DWORD 0
+
+    ; --- 塔與敵人資訊 ---
     enemies     BYTE  MaxEnemies * EnemySize DUP(0)
     towers      BYTE  MaxTowers * TowerSize DUP(0)
     
@@ -55,19 +47,23 @@ TowerOff_KillCount EQU 12
     enemiesTotal    DWORD 0
     enemiesAlive    DWORD 0
     
-    ; --- 字串 ---
-    strTitle    BYTE "=== MASM Auto Tower Defense (Wave ", 0
-    strClose    BYTE ") ===", 0dh, 0ah, 0
-    strStats    BYTE "Money: $", 0
+    ; --- 文字內容 ---
+    strTitle1   BYTE "=== StageBeta (Wave ", 0
+    strTitle2   BYTE ") ===", 0dh, 0ah, 0
+    strMoney    BYTE "Money: $", 0
     strHealth   BYTE "  |  Base HP: ", 0
-    strPrep     BYTE 0dh, 0ah, "State: [PREP] (b)Build ($50) | (s)Start | (q)Quit", 0dh, 0ah, "Cmd: ", 0
+    strPrep     BYTE 0dh, 0ah, "State: [PREP] (b)Build ($50) | (s)Start ", 0dh, 0ah, "Enter command here: ", 0
     strBattle   BYTE 0dh, 0ah, "State: [BATTLE] Enemies Left: ", 0
     strInputX   BYTE "Enter X: ", 0
     strInputY   BYTE "Enter Y: ", 0
     strMsgBuild BYTE ">> Tower Built!", 0dh, 0ah, 0
-    strMsgErr   BYTE ">> Invalid Pos or No Money!", 0dh, 0ah, 0
-    strLose     BYTE 0dh, 0ah, "=== GAME OVER ===", 0dh, 0ah, 0
+    strMsgErr01 BYTE ">> Not Enough Money!", 0dh, 0ah, 0 ; 報錯訊息01
+    strMsgErr02 BYTE ">> Can Not Set Tower Here, Try Again!", 0dh, 0ah, 0 ; 報錯訊息02
+    strMsgErr03 BYTE ">> Build Too Many Towers!", 0dh, 0ah, 0 ; 報錯訊息03
+    strLose     BYTE 0dh, 0ah, "=== YOU LOSE !!!===", 0dh, 0ah, "(r)Replay | (q)QuitGame", 0
+    strWin      BYTE 0dh, 0ah, "=== StageBeta Cleared !!!===", 0dh, 0ah, "(r)Replay | (q)QuitGame", 0
     strWinWave  BYTE 0dh, 0ah, ">> Wave Cleared! <<", 0dh, 0ah, 0
+    strXPos     BYTE "ABCDEFGHIJKLMNOPQRST(X)", 0
     
     strBorderH  BYTE "  +--------------------+", 0dh, 0ah, 0
     strRowStart BYTE " |", 0
@@ -75,46 +71,65 @@ TowerOff_KillCount EQU 12
 
 .code
 main PROC
-    call InitGame
-
-GameLoop:
-    cmp gameOver, 1
-    je ExitMain
-
-    ; 1. 準備階段
+GameStart:
+    call InitGame ; 初始化遊戲
+GameLoop: ; 遊戲主邏輯
+    ; 準備階段
     call RunPrepPhase
     
-    cmp gameOver, 1
-    je ExitMain
-
-    ; 2. 戰鬥階段
+    ; 戰鬥階段
     call RunBattlePhase
-    
+
+    ; 血量歸0，結束遊戲
     cmp health, 0
     jg NextWave
     mov gameOver, 1
-    call Clrscr
-    mov edx, OFFSET strLose
-    call WriteString
-    jmp ExitMain
+    jmp Lose
 
 NextWave:
+    cmp wave, WaveToClear
+    je Win
     mov eax, wave
     imul eax, 10
-    add eax, 50
+    add eax, 30
     add money, eax
     
     inc wave
     jmp GameLoop
 
-ExitMain:
+Lose: ; 關卡挑戰失敗，顯示失敗文字，給玩家選擇重玩或關掉遊戲
+    call Clrscr
+    mov edx, OFFSET strLose
+    call WriteString
+    call Crlf
+    call ReadChar
+    cmp al, 'r' ;按r重新遊玩
+    je GameStart
+    cmp al, 'q' ;按q結束遊戲
+    je EndGame
+
+    jmp Lose
+
+Win: ; 關卡挑戰成功，顯示通關文字，給玩家選擇重玩或關掉遊戲
+    call Clrscr
+    mov edx, OFFSET strWin
+    call WriteString
+    call Crlf
+    call ReadChar
+    cmp al, 'r' ;按r重新遊玩
+    je GameStart
+    cmp al, 'q' ;按q結束遊戲
+    je EndGame
+
+    jmp Win
+EndGame:
     exit
 main ENDP
 
 ; --- 初始化遊戲 ---
 InitGame PROC
-    mov money, StartMoney
-    mov health, BaseHP
+    mov money, StartMoney 
+    mov health, StartBaseHP
     mov wave, 1
     mov gameOver, 0
     call InitPath
@@ -124,97 +139,105 @@ InitGame PROC
     mov ecx, MaxTowers * TowerSize
     mov al, 0
     rep stosb
+
+    mov edi, OFFSET enemies
+    mov ecx, MaxEnemies * EnemySize
+    mov al, 0
+    rep stosb
+
     ret
 InitGame ENDP
 
-; --- 初始化路徑 ---
+; --- 設定路徑，設定S字形路線 ---
 InitPath PROC
     mov pathLength, 0
     mov esi, OFFSET pathArray
     
     mov ecx, 0 ; x
     mov edx, 1 ; y
-L1:
+SetHorizontalLine1: ; 設定路徑第一條橫線座標
     mov [esi], ecx
     mov [esi+4], edx
     add esi, 8
     inc pathLength
     inc ecx
     cmp ecx, 15
-    jle L1
+    jle SetHorizontalLine1
     dec ecx 
 
-L2:
+SetStraightLine1: ; 設定路徑第一條直線座標
     mov [esi], ecx
     mov [esi+4], edx
     add esi, 8
     inc pathLength
     inc edx
     cmp edx, 6
-    jle L2
+    jle SetStraightLine1
     dec edx 
 
-L3:
+SetHorizontalLine2: ; 設定路徑第二條橫線座標
     mov [esi], ecx
     mov [esi+4], edx
     add esi, 8
     inc pathLength
     dec ecx
     cmp ecx, 5
-    jge L3
+    jge SetHorizontalLine2
     inc ecx 
 
-L4:
+SetStraightLine2: ; 設定路徑第二條直線座標
     mov [esi], ecx
     mov [esi+4], edx
     add esi, 8
     inc pathLength
     inc edx
     cmp edx, 8
-    jle L4
+    jle SetStraightLine2
     dec edx 
 
-L5:
+SetHorizontalLine3: ; 設定路徑第三條橫線座標
     mov [esi], ecx
     mov [esi+4], edx
     add esi, 8
     inc pathLength
     inc ecx
     cmp ecx, MapWidth
-    jl L5
+    jl SetHorizontalLine3
     ret
 InitPath ENDP
 
 ; --- 準備階段 ---
 RunPrepPhase PROC
 PrepLoop:
-    push 0 
+    push 0 ; 初始化本地變數
     push 0
-    call Draw
+    call Draw ; 顯示路線
     
-    mov edx, OFFSET strPrep
+    mov edx, OFFSET strPrep ; 顯示準備文字敘述
     call WriteString
     
-    call ReadChar
+    call ReadChar ;讀取指令
     
-    cmp al, 'q'
-    je QuitGame
-    cmp al, 's'
+    cmp al, 's' ;按s進入戰鬥
     je StartBattle
-    cmp al, 'b'
+    cmp al, 'b' ;按b進入建築模式
     je BuildMode
+
     jmp PrepLoop
 
-BuildMode:
+BuildMode: ; 建築模式
     call Crlf
+    
+    cmp money, TowerCost ; 偵錯: 錢不夠
+    jl BuildFailNotEnoughMoney 
     
     ; 輸入 X
     mov edx, OFFSET strInputX
     call WriteString
     call ReadInt
     mov ebx, eax 
-    
-    ; 輸入 Y (分開詢問以避免 ReadInt 吃掉換行符導致 Y=0)
+
+    ; 輸入 Y 
     mov edx, OFFSET strInputY
     call WriteString
     call ReadInt
@@ -223,10 +246,12 @@ BuildMode:
     call BuildTower
     call DelayBig
     jmp PrepLoop
+BuildFailNotEnoughMoney:
+    mov edx, OFFSET strMsgErr01
+    call WriteString
+    call DelayBig
+    jmp PrepLoop
 
-QuitGame:
-    mov gameOver, 1
-    ret
 StartBattle:
     ret
 RunPrepPhase ENDP
@@ -239,13 +264,8 @@ RunBattlePhase PROC
     
     mov eax, wave
     shl eax, 1
-    add eax, 5
+    add eax, 6
     mov enemiesTotal, eax
-    
-    mov edi, OFFSET enemies
-    mov ecx, MaxEnemies * EnemySize
-    mov al, 0
-    rep stosb
 
 BattleLoop:
     cmp health, 0
@@ -253,23 +273,23 @@ BattleLoop:
 
     mov eax, enemiesSpawned
     cmp eax, enemiesTotal
-    jge SkipSpawn
+    jge EnemiesAndTowers
     
     mov eax, tick
     and eax, 3
     cmp eax, 0
-    jne SkipSpawn
+    jne EnemiesAndTowers
     
     call SpawnEnemy
 
-SkipSpawn:
+EnemiesAndTowers:
     call MoveEnemies
     call TowersAttack
     
     push enemiesTotal
     push enemiesAlive
     call Draw
-    
+
     mov eax, enemiesSpawned
     cmp eax, enemiesTotal
     jl ContinueBattle
@@ -336,7 +356,6 @@ MoveLoop:
     mov DWORD PTR [esi + EnemyOff_Active], 0
     dec health
     dec enemiesAlive
-
 NextEnemyMove:
     add esi, EnemySize
     loop MoveLoop
@@ -380,7 +399,7 @@ EnemyCheckLoop:
     add ebp, ebx  
     pop ebx
     
-    cmp ebp, TowerRangeSq
+    cmp ebp, TowerRange
     jg NextEnemyCheck
     
     mov eax, [edi + EnemyOff_HP]
@@ -413,35 +432,32 @@ TowersAttack ENDP
 
 ; --- 建造塔 ---
 BuildTower PROC
-    cmp money, TowerCost
-    jl BuildFail
-    
-    cmp ebx, 0
-    jl BuildFail
+    cmp ebx, 0 ; 偵錯: 位置超出地圖邊界
+    jl BuildFailIllegalSetting
     cmp ebx, MapWidth
-    jge BuildFail
+    jge BuildFailIllegalSetting
     cmp ecx, 0
-    jl BuildFail
+    jl BuildFailIllegalSetting
     cmp ecx, MapHeight
-    jge BuildFail
+    jge BuildFailIllegalSetting
     
     push ecx
     push ebx
     mov edx, OFFSET pathArray
     mov eax, pathLength
-CheckPathLoop:
+CheckPath: ; 偵錯: 設在道路上
     cmp [edx], ebx     
-    jne NextPathP
+    jne NextPath
     cmp [edx+4], ecx   
-    jne NextPathP
+    jne NextPath
     pop ebx
     pop ecx
-    jmp BuildFail
-NextPathP:
+    jmp BuildFailIllegalSetting
+NextPath:
     add edx, 8
     dec eax
     cmp eax, 0
-    jg CheckPathLoop
+    jg CheckPath
     pop ebx
     pop ecx
     
@@ -449,29 +465,29 @@ NextPathP:
     mov edi, 0 
     mov edx, MaxTowers
     
-CheckTowerLoop:
+CheckTower: ; 偵錯: 重複設在同一位置
     cmp DWORD PTR [esi + TowerOff_Active], 1
     jne IsEmptySlot
     cmp [esi + TowerOff_X], ebx
     jne NextTw
-    cmp [esi + TowerOff_Y], ecx
-    je BuildFail 
+    cmp [esi + TowerOff_Y], ecx 
+    je BuildFailIllegalSetting 
     jmp NextTw
     
 IsEmptySlot:
-    cmp edi, 0
-    jne NextTw
     mov edi, esi 
+    jmp Build
     
 NextTw:
     add esi, TowerSize
     dec edx
     cmp edx, 0
-    jg CheckTowerLoop
+    jg CheckTower
     
     cmp edi, 0
-    je BuildFail 
+    je BuildFailTooManyTower  
     
+Build: 
     mov DWORD PTR [edi + TowerOff_Active], 1
     mov [edi + TowerOff_X], ebx
     mov [edi + TowerOff_Y], ecx
@@ -481,13 +497,19 @@ NextTw:
     call WriteString
     ret
 
-BuildFail:
-    mov edx, OFFSET strMsgErr
+
+BuildFailIllegalSetting:
+    mov edx, OFFSET strMsgErr02
+    call WriteString
+    ret
+
+BuildFailTooManyTower:
+    mov edx, OFFSET strMsgErr03
     call WriteString
     ret
 BuildTower ENDP
 
-; --- 繪製畫面 (修正版：修復堆疊錯誤) ---
+; --- 繪製畫面 ---
 Draw PROC
     mov edi, OFFSET mapBuffer
     mov ecx, MapWidth * MapHeight
@@ -496,7 +518,7 @@ Draw PROC
     
     mov esi, OFFSET pathArray
     mov ecx, pathLength
-DrawPathLoop:
+DrawPath: ; 生成路線
     mov ebx, [esi]   
     mov eax, [esi+4] 
     
@@ -505,7 +527,7 @@ DrawPathLoop:
     mov BYTE PTR [mapBuffer + eax], '.'
     
     add esi, 8
-    loop DrawPathLoop
+    loop DrawPath
     
     mov esi, OFFSET pathArray
     mov ebx, [esi]
@@ -516,7 +538,7 @@ DrawPathLoop:
     
     mov esi, OFFSET towers
     mov ecx, MaxTowers
-DrawTwLoop:
+DrawTw: ; 生成塔
     cmp DWORD PTR [esi + TowerOff_Active], 1
     jne NextDrTw
     mov ebx, [esi + TowerOff_X]
@@ -526,8 +548,7 @@ DrawTwLoop:
     mov BYTE PTR [mapBuffer + eax], 'T'
 NextDrTw:
     add esi, TowerSize
-    loop DrawTwLoop
-    
+    loop DrawTw
     mov esi, OFFSET enemies
     add esi, (MaxEnemies - 1) * EnemySize
     mov ecx, MaxEnemies
@@ -550,17 +571,16 @@ DrawEnLoop:
 NextDrEn:
     sub esi, EnemySize
     loop DrawEnLoop
-
     call Clrscr
     
-    mov edx, OFFSET strTitle
+    mov edx, OFFSET strTitle1
     call WriteString
     mov eax, wave
     call WriteDec
-    mov edx, OFFSET strClose
+    mov edx, OFFSET strTitle2
     call WriteString
     
-    mov edx, OFFSET strStats
+    mov edx, OFFSET strMoney
     call WriteString
     mov eax, money
     call WriteDec
@@ -569,10 +589,6 @@ NextDrEn:
     mov eax, health
     call WriteDec
     
-    mov edx, OFFSET strBattle
-    call WriteString 
-    mov eax, [esp+4] ; 讀取 Stack 中的 enemiesTotal (不破壞堆疊)
-    ; 這裡顯示有點複雜，簡單跳過詳細數字以求穩定
     call Crlf
     
     mov al, ' '
@@ -582,14 +598,9 @@ NextDrEn:
     mov ecx, MapWidth
     mov ebx, 0
 PrX:
-    mov eax, ebx
-    mov edx, 0
-    mov edi, 10
-    div edi 
-    mov eax, edx
-    call WriteDec
-    inc ebx
-    loop PrX
+    mov edx, OFFSET strXPos
+    call WriteString
+
     call Crlf
     
     mov edx, OFFSET strBorderH
@@ -670,13 +681,11 @@ PrChar:
     
     mov edx, OFFSET strBorderH
     call WriteString
+
+    call Crlf
     
-    ; ------------------------------------
-    ; !!! 重要修正 (Fix) !!!
-    ; ------------------------------------
-    ; 絕對不能在這裡 pop eax，因為這會把 Return Address 彈出！
-    ; 而是使用 ret 8 來清理呼叫者 push 進來的 2 個參數 (8 bytes)
     
+
     ret 8
 Draw ENDP
 
